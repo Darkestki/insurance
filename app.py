@@ -15,26 +15,27 @@ st.set_page_config(
 )
 
 # -----------------------------
-# 💅 3D Card Style
+# 💅 Dynamic Theme Style
 # -----------------------------
 st.markdown("""
-    <style>
-    .main {
-        background-color: #f4f6f9;
-    }
-    .stButton>button {
-        background-color: #4CAF50;
-        color: white;
-        border-radius: 10px;
-        height: 3em;
-        width: 100%;
-        font-size: 18px;
-        box-shadow: 3px 3px 10px rgba(0,0,0,0.3);
-    }
-    .stButton>button:hover {
-        background-color: #45a049;
-    }
-    </style>
+<style>
+.main {
+    background: linear-gradient(135deg, #e0f7fa, #f1f8e9);
+}
+.stButton>button {
+    background: linear-gradient(90deg, #00c853, #64dd17);
+    color: white;
+    border-radius: 12px;
+    height: 3em;
+    width: 100%;
+    font-size: 18px;
+    font-weight: bold;
+    box-shadow: 3px 3px 15px rgba(0,0,0,0.3);
+}
+.stButton>button:hover {
+    transform: scale(1.05);
+}
+</style>
 """, unsafe_allow_html=True)
 
 # -----------------------------
@@ -43,37 +44,38 @@ st.markdown("""
 @st.cache_resource
 def load_artifacts():
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    
-    model_path = os.path.join(BASE_DIR, "ann_insurance_model.h5")
-    scaler_path = os.path.join(BASE_DIR, "standard_scaler.pkl")
-    
-    model = load_model(model_path)
-    scaler = joblib.load(scaler_path)
-    
+    model = load_model(os.path.join(BASE_DIR, "ann_insurance_model.h5"))
+    scaler = joblib.load(os.path.join(BASE_DIR, "standard_scaler.pkl"))
     return model, scaler
 
 model, sc = load_artifacts()
 
 # -----------------------------
-# 🏥 App Title
+# 🏥 Title
 # -----------------------------
-st.title("🏥 Insurance Charge Prediction App")
-st.write("Fill the details below to predict your insurance charges 💡")
+st.title("🏥 Smart Insurance Charge Predictor")
+st.markdown("### AI Based Medical Cost Estimator 💡")
 
 # -----------------------------
 # 👤 User Inputs
 # -----------------------------
-age = st.slider("🎂 Age", 18, 65, 30)
-bmi = st.number_input("⚖ BMI", 15.0, 50.0, 25.0, step=0.1)
-children = st.slider("👶 Number of Children", 0, 5, 1)
-sex = st.selectbox("🧑 Gender", ["female", "male"])
-smoker = st.selectbox("🚬 Smoker", ["no", "yes"])
-region = st.selectbox("🌍 Region", ["southwest", "southeast", "northwest", "northeast"])
+col1, col2 = st.columns(2)
+
+with col1:
+    age = st.slider("🎂 Age", 18, 65, 30)
+    bmi = st.number_input("⚖ BMI", 15.0, 50.0, 25.0, step=0.1)
+    children = st.slider("👶 Children", 0, 5, 1)
+
+with col2:
+    sex = st.selectbox("🧑 Gender", ["female", "male"])
+    smoker = st.selectbox("🚬 Smoker", ["no", "yes"])
+    region = st.selectbox("🌍 Region", 
+                          ["southwest", "southeast", "northwest", "northeast"])
 
 # -----------------------------
-# 🔄 Preprocessing Function
+# 🔄 Preprocessing
 # -----------------------------
-def preprocess_input(age, bmi, children, sex, smoker, region, sc):
+def preprocess_input(age, bmi, children, sex, smoker, region):
 
     input_encoded = pd.DataFrame(0, index=[0], columns=[
         'age', 'bmi', 'children', 'sex_male', 'smoker_yes',
@@ -86,7 +88,6 @@ def preprocess_input(age, bmi, children, sex, smoker, region, sc):
 
     if sex == 'male':
         input_encoded['sex_male'] = 1
-
     if smoker == 'yes':
         input_encoded['smoker_yes'] = 1
 
@@ -97,19 +98,48 @@ def preprocess_input(age, bmi, children, sex, smoker, region, sc):
     elif region == 'southwest':
         input_encoded['region_southwest'] = 1
 
-    scaled_input = sc.transform(input_encoded)
-
-    return scaled_input
+    return sc.transform(input_encoded)
 
 # -----------------------------
-# 🔮 Prediction Button
+# 🎯 Risk Calculator
+# -----------------------------
+def calculate_risk(age, bmi, smoker):
+    score = 0
+    if age > 50:
+        score += 1
+    if bmi > 30:
+        score += 1
+    if smoker == "yes":
+        score += 2
+    return score
+
+# -----------------------------
+# 🔮 Prediction
 # -----------------------------
 if st.button("🔍 Predict Insurance Charge"):
 
-    scaled_input_data = preprocess_input(age, bmi, children, sex, smoker, region, sc)
-
-    prediction = model.predict(scaled_input_data)
+    scaled_input = preprocess_input(age, bmi, children, sex, smoker, region)
+    prediction = model.predict(scaled_input)
     predicted_charge = float(prediction[0][0])
 
-    st.success(f"💰 Predicted Insurance Charge: ${predicted_charge:,.2f}")
-    st.balloons()
+    risk_score = calculate_risk(age, bmi, smoker)
+
+    # 🎨 Dynamic Risk Display
+    if risk_score <= 1:
+        st.success(f"💰 Estimated Charge: ${predicted_charge:,.2f}")
+        st.info("🟢 Low Risk Profile")
+    elif risk_score == 2:
+        st.warning(f"💰 Estimated Charge: ${predicted_charge:,.2f}")
+        st.warning("🟡 Medium Risk Profile")
+    else:
+        st.error(f"💰 Estimated Charge: ${predicted_charge:,.2f}")
+        st.error("🔴 High Risk Profile")
+
+    # 📊 Risk Meter
+    st.progress(min(risk_score * 30, 100))
+
+    # 🎈 Celebration
+    if predicted_charge < 10000:
+        st.balloons()
+    else:
+        st.snow()
