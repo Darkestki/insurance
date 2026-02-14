@@ -1,5 +1,13 @@
 # prompt: make full req text file with minor details 
 streamlit
+tensorflow-cpu==2.15.0
+pandas
+numpy
+scikit-learn
+joblib
+h5py
+matplotlib
+streamlit
 tensorflow
 pandas
 numpy
