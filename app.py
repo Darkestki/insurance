@@ -2,89 +2,114 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import joblib
+import os
 from tensorflow.keras.models import load_model
 
-# Load the trained model and scaler
+# -----------------------------
+# 🎨 Page Configuration
+# -----------------------------
+st.set_page_config(
+    page_title="Insurance Charge Predictor 💰",
+    page_icon="💰",
+    layout="centered"
+)
+
+# -----------------------------
+# 💅 3D Card Style
+# -----------------------------
+st.markdown("""
+    <style>
+    .main {
+        background-color: #f4f6f9;
+    }
+    .stButton>button {
+        background-color: #4CAF50;
+        color: white;
+        border-radius: 10px;
+        height: 3em;
+        width: 100%;
+        font-size: 18px;
+        box-shadow: 3px 3px 10px rgba(0,0,0,0.3);
+    }
+    .stButton>button:hover {
+        background-color: #45a049;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# -----------------------------
+# 📦 Load Model & Scaler
+# -----------------------------
 @st.cache_resource
 def load_artifacts():
-    model = load_model('ann_insurance_model.h5')
-    scaler = joblib.load('standard_scaler.pkl')
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    
+    model_path = os.path.join(BASE_DIR, "ann_insurance_model.h5")
+    scaler_path = os.path.join(BASE_DIR, "standard_scaler.pkl")
+    
+    model = load_model(model_path)
+    scaler = joblib.load(scaler_path)
+    
     return model, scaler
 
 model, sc = load_artifacts()
 
-st.title('Insurance Charge Prediction App')
-st.write('Enter the details below to predict the insurance charge.')
+# -----------------------------
+# 🏥 App Title
+# -----------------------------
+st.title("🏥 Insurance Charge Prediction App")
+st.write("Fill the details below to predict your insurance charges 💡")
 
-# User input fields
-age = st.slider('Age', 18, 65, 30)
-bmi = st.number_input('BMI', 15.0, 50.0, 25.0, step=0.1)
-children = st.slider('Number of Children', 0, 5, 1)
-sex = st.selectbox('Sex', ['female', 'male'])
-smoker = st.selectbox('Smoker', ['no', 'yes'])
-region = st.selectbox('Region', ['southwest', 'southeast', 'northwest', 'northeast'])
+# -----------------------------
+# 👤 User Inputs
+# -----------------------------
+age = st.slider("🎂 Age", 18, 65, 30)
+bmi = st.number_input("⚖ BMI", 15.0, 50.0, 25.0, step=0.1)
+children = st.slider("👶 Number of Children", 0, 5, 1)
+sex = st.selectbox("🧑 Gender", ["female", "male"])
+smoker = st.selectbox("🚬 Smoker", ["no", "yes"])
+region = st.selectbox("🌍 Region", ["southwest", "southeast", "northwest", "northeast"])
 
-# Preprocess input
+# -----------------------------
+# 🔄 Preprocessing Function
+# -----------------------------
 def preprocess_input(age, bmi, children, sex, smoker, region, sc):
-    # Create a DataFrame for the input
-    input_data = pd.DataFrame({
-        'age': [age],
-        'bmi': [bmi],
-        'children': [children],
-        'sex': [sex],
-        'smoker': [smoker],
-        'region': [region]
-    })
 
-    # Apply one-hot encoding for categorical features
-    # Ensure consistent column names and order as during training
-    # The original training data X had columns: age, bmi, children, sex_male, smoker_yes, region_northwest, region_southeast, region_southwest
-    # Initialize dummy variables to False (or 0)
-    input_encoded = pd.DataFrame(0, index=input_data.index, columns=[
+    input_encoded = pd.DataFrame(0, index=[0], columns=[
         'age', 'bmi', 'children', 'sex_male', 'smoker_yes',
         'region_northwest', 'region_southeast', 'region_southwest'
     ])
-    
-    input_encoded['age'] = input_data['age']
-    input_encoded['bmi'] = input_data['bmi']
-    input_encoded['children'] = input_data['children']
+
+    input_encoded['age'] = age
+    input_encoded['bmi'] = bmi
+    input_encoded['children'] = children
 
     if sex == 'male':
-        input_encoded['sex_male'] = True
-    
+        input_encoded['sex_male'] = 1
+
     if smoker == 'yes':
-        input_encoded['smoker_yes'] = True
-        
+        input_encoded['smoker_yes'] = 1
+
     if region == 'northwest':
-        input_encoded['region_northwest'] = True
+        input_encoded['region_northwest'] = 1
     elif region == 'southeast':
-        input_encoded['region_southeast'] = True
+        input_encoded['region_southeast'] = 1
     elif region == 'southwest':
-        input_encoded['region_southwest'] = True
-    # 'northeast' implies all region dummies are False, which is the default
+        input_encoded['region_southwest'] = 1
 
-    # Scale numerical features (age, bmi, children already in input_encoded)
-    # Note: StandardScaler expects numpy array, and transforms all columns it was fitted on.
-    # The loaded 'sc' was fitted on X (which includes dummy variables). 
-    # So we need to ensure input_encoded has the same columns as the X from training and in the same order.
-    
-    # Reorder columns to match the training data X if necessary.
-    # Assuming the order is consistent with how get_dummies created X.
-    # For robustness, you might want to store X.columns during training and use that here.
-    # For now, let's assume the generated input_encoded has the correct order based on our construction.
-
-    # Convert boolean columns to int for scaling if the scaler expects numerical input
-    for col in ['sex_male', 'smoker_yes', 'region_northwest', 'region_southeast', 'region_southwest']:
-        input_encoded[col] = input_encoded[col].astype(int)
-
-    # Scale the input data
     scaled_input = sc.transform(input_encoded)
-    
+
     return scaled_input
 
+# -----------------------------
+# 🔮 Prediction Button
+# -----------------------------
+if st.button("🔍 Predict Insurance Charge"):
 
-if st.button('Predict Insurance Charge'):
     scaled_input_data = preprocess_input(age, bmi, children, sex, smoker, region, sc)
-    predicted_charge = model.predict(scaled_input_data)[0][0]
-    
-    st.success(f'Predicted Insurance Charge: ${predicted_charge:.2f}')
+
+    prediction = model.predict(scaled_input_data)
+    predicted_charge = float(prediction[0][0])
+
+    st.success(f"💰 Predicted Insurance Charge: ${predicted_charge:,.2f}")
+    st.balloons()
