@@ -3,25 +3,37 @@ import pandas as pd
 import numpy as np
 import joblib
 import os
-import matplotlib.pyplot as plt
 from tensorflow.keras.models import load_model
 
 # -----------------------------
-# 🎨 Page Configuration
+# 💖 Page Configuration
 # -----------------------------
 st.set_page_config(
-    page_title="Insurance Charge Predictor 💰",
-    page_icon="💰",
+    page_title="Valentine Insurance Predictor 💘",
+    page_icon="💖",
     layout="centered"
 )
 
 # -----------------------------
-# 💅 3D Styling
+# 🌹 Valentine Theme Styling
 # -----------------------------
 st.markdown("""
     <style>
     .main {
-        background-color: #f4f6f9;
+        background: linear-gradient(135deg, #ffdde1, #ee9ca7);
+    }
+    .stButton>button {
+        background-color: #ff4b6e;
+        color: white;
+        border-radius: 25px;
+        height: 3em;
+        width: 100%;
+        font-size: 18px;
+        font-weight: bold;
+        box-shadow: 4px 4px 15px rgba(0,0,0,0.3);
+    }
+    .stButton>button:hover {
+        background-color: #ff1e56;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -43,25 +55,20 @@ def load_artifacts():
 model, sc = load_artifacts()
 
 # -----------------------------
-# 🏥 Title
+# 💘 Title
 # -----------------------------
-st.title("🏥 Insurance Charge Prediction Dashboard")
-st.write("Adjust the inputs below and see real-time premium prediction 💡")
+st.title("💖 Valentine Special Insurance Predictor 💖")
+st.write("Enter your details and see how much love (insurance 💰) costs you 🌹")
 
 # -----------------------------
-# 👤 User Inputs
+# 👤 Inputs
 # -----------------------------
-col1, col2 = st.columns(2)
-
-with col1:
-    age = st.slider("🎂 Age", 18, 65, 30)
-    bmi = st.number_input("⚖ BMI", 15.0, 50.0, 25.0, step=0.1)
-    children = st.slider("👶 Children", 0, 5, 1)
-
-with col2:
-    sex = st.selectbox("🧑 Gender", ["female", "male"])
-    smoker = st.selectbox("🚬 Smoker", ["no", "yes"])
-    region = st.selectbox("🌍 Region", ["southwest", "southeast", "northwest", "northeast"])
+age = st.slider("🎂 Your Age", 18, 65, 25)
+bmi = st.number_input("💃 BMI", 15.0, 50.0, 22.0, step=0.1)
+children = st.slider("👶 Kids", 0, 5, 0)
+sex = st.selectbox("💑 Gender", ["female", "male"])
+smoker = st.selectbox("🚬 Smoker", ["no", "yes"])
+region = st.selectbox("🌍 Region", ["southwest", "southeast", "northwest", "northeast"])
 
 # -----------------------------
 # 🔄 Preprocessing
@@ -79,10 +86,8 @@ def preprocess_input(age, bmi, children, sex, smoker, region, sc):
 
     if sex == 'male':
         input_encoded['sex_male'] = 1
-
     if smoker == 'yes':
         input_encoded['smoker_yes'] = 1
-
     if region == 'northwest':
         input_encoded['region_northwest'] = 1
     elif region == 'southeast':
@@ -94,57 +99,30 @@ def preprocess_input(age, bmi, children, sex, smoker, region, sc):
     return scaled_input
 
 # -----------------------------
-# 🔮 Dynamic Prediction
+# 💝 Prediction
 # -----------------------------
-scaled_input_data = preprocess_input(age, bmi, children, sex, smoker, region, sc)
+if st.button("💘 Predict My Love Cost 💘"):
 
-prediction = model.predict(scaled_input_data)
-predicted_charge = float(prediction[0][0])
+    scaled_input_data = preprocess_input(age, bmi, children, sex, smoker, region, sc)
+    prediction = model.predict(scaled_input_data)
+    predicted_charge = float(prediction[0][0])
 
-# -----------------------------
-# 📊 Risk Level Logic
-# -----------------------------
-if predicted_charge < 10000:
-    risk = "Low Risk ✅"
-    color = "#2E8B57"
-elif predicted_charge < 30000:
-    risk = "Medium Risk ⚠"
-    color = "#FFA500"
-else:
-    risk = "High Risk 🔥"
-    color = "#FF4B4B"
+    st.markdown(f"""
+        <div style="
+            background: linear-gradient(135deg, #ff4b6e, #ff758c);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            color: white;
+            font-size: 26px;
+            font-weight: bold;
+            box-shadow: 5px 5px 25px rgba(0,0,0,0.4);
+            margin-top: 20px;
+        ">
+            💖 Your Valentine Insurance Charge 💖 <br><br>
+            ${predicted_charge:,.2f}
+        </div>
+    """, unsafe_allow_html=True)
 
-# -----------------------------
-# 💰 3D Result Card
-# -----------------------------
-st.markdown(f"""
-    <div style="
-        background: linear-gradient(135deg, {color}, #222);
-        padding: 25px;
-        border-radius: 15px;
-        text-align: center;
-        color: white;
-        font-size: 24px;
-        font-weight: bold;
-        box-shadow: 5px 5px 20px rgba(0,0,0,0.4);
-        margin-top: 20px;
-    ">
-        💰 Predicted Insurance Charge <br><br>
-        ${predicted_charge:,.2f} <br><br>
-        {risk}
-    </div>
-""", unsafe_allow_html=True)
-
-# -----------------------------
-# 📈 Comparison Chart
-# -----------------------------
-st.subheader("📊 Premium Comparison")
-
-average_charge = 20000  # You can adjust based on dataset mean
-
-fig = plt.figure()
-plt.bar(["Your Premium", "Average Premium"], 
-        [predicted_charge, average_charge])
-plt.ylabel("Charge ($)")
-plt.title("Premium Comparison")
-st.pyplot(fig)
+    st.balloons()
+    st.success("💞 Happy Valentine’s Day! Stay insured & stay loved 💞")
